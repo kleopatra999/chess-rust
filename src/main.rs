@@ -40,11 +40,11 @@ fn is_on_board(p:Pos) -> bool {
 }
 
 fn is_empty(p:Pos, board:Board) -> bool {
-    board_get_field(board, p) == Field::Empty
+    board_index(board, p) == Field::Empty
 }
 
 fn is_enemy(p:Pos, color:Color, board:Board) -> bool {
-    match board_get_field(board, p) {
+    match board_index(board, p) {
         Field::Empty     => false,
         Field::Figure(f) => f.color != color
     }
@@ -52,7 +52,7 @@ fn is_enemy(p:Pos, color:Color, board:Board) -> bool {
 
 
 
-fn board_get_field(board:Board, p:Pos) -> Field {
+fn board_index(board:Board, p:Pos) -> Field {
     board.fields[p.y as usize][p.x as usize]
 }
 
