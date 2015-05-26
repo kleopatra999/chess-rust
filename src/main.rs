@@ -26,6 +26,10 @@ struct Figure {
     color    : Color
 }
 
+type Move = (i32, i32, i32, i32);
+
+
+
 fn is_valid_move_pawn(p1:Pos, p2:Pos, color:Color, board:Board) -> bool {
     let dir = get_direction(color);
     is_on_board(p2) && ((
@@ -54,8 +58,17 @@ fn is_enemy(p:Pos, color:Color, board:Board) -> bool {
 
 
 fn board_index(board:Board, p:Pos) -> Field {
-    board.fields[p.y as usize][p.x as usize]
+    board_index_xy(board, p.x, p.y)
 }
+
+fn board_index_xy(board:Board, x:i32, y:i32) -> Field {
+    board.fields[y as usize][x as usize]
+}
+
+fn board_set_xy(board:&mut Board, x:i32, y:i32, field:Field) {
+    board.fields[y as usize][x as usize] = field;
+}
+
 
 
 fn get_direction(color:Color) -> i32 {
@@ -126,7 +139,7 @@ fn board_to_string(board:Board) -> String {
 
 
 
-fn board_from_string(s:&str) -> Board {
+fn board_from_str(s:&str) -> Board {
     let mut fields = [[Field::Empty; 8]; 8];
     for (i, c) in s.char_indices() {
         fields[i / 8][i % 8] = field_from_char(c);
@@ -167,13 +180,20 @@ fn figure_kind_from_char(c:char) -> Option<FigureKind> {
 
 
 
-fn main() {
-    let standard_board = "NRBKQBRN\
-    PPPPPPPP                                \
-    pppppppp\
-    nrbqkbrn";
-    let board   = board_from_string(standard_board);
-    println!("{}", board_to_string(board));
+fn board_apply_move(board:&mut Board, move_:Move) {
+    let (x1, y1, x2, y2) = move_;
+    let field = board_index_xy(*board, x1, y1);
+    board_set_xy(board, x2, y2, field);
+    board_set_xy(board, x1, y1, Field::Empty);
 }
 
 
+
+fn main() {
+    let standard_board = "NRBKQBRNPPPPPPPP                                \
+    ppppppppnrbqkbrn";
+    let board = &mut board_from_str(standard_board);
+    println!("{}", board_to_string(*board));
+    board_apply_move(board, (0, 1, 0, 2));
+    println!("{}", board_to_string(*board));
+}
