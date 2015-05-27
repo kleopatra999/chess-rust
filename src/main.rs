@@ -1,14 +1,10 @@
 
 
-#[derive(Clone,Copy)]
-struct Pos { x:i32, y:i32 }
 
 #[derive(Clone,Copy)]
 struct Board {
     fields: [[Field; 8]; 8]
 }
-
-type Moves = Vec<Pos>;
 
 #[derive(PartialEq,Eq,Clone,Copy)]
 enum Color { W, B }
@@ -26,22 +22,13 @@ struct Figure {
     color    : Color
 }
 
-type Move = (i32, i32, i32, i32);
+type Pos  = (i32, i32);
+type Move = (Pos, Pos);
 
 
-
-fn is_valid_move_pawn(p1:Pos, p2:Pos, color:Color, board:Board) -> bool {
-    let dir = get_direction(color);
-    is_on_board(p2) && ((
-        p1.x == p2.x && p2.y == p1.y + dir
-        && is_empty(p2, board))
-    ||  ((p1.x - p2.x).abs() == 1 && p2.y == p1.y + dir
-        && is_enemy(p2, color, board))
-    )
-}
 
 fn is_on_board(p:Pos) -> bool {
-    p.x >= 0 && p.x < 8 && p.y >= 0 && p.y < 8
+    p.0 >= 0 && p.0 < 8 && p.1 >= 0 && p.1 < 8
 }
 
 fn is_empty(p:Pos, board:Board) -> bool {
@@ -58,11 +45,15 @@ fn is_enemy(p:Pos, color:Color, board:Board) -> bool {
 
 
 fn board_index(board:Board, p:Pos) -> Field {
-    board_index_xy(board, p.x, p.y)
+    board_index_xy(board, p.0, p.1)
 }
 
 fn board_index_xy(board:Board, x:i32, y:i32) -> Field {
     board.fields[y as usize][x as usize]
+}
+
+fn board_set(board:&mut Board, p:Pos, field:Field) {
+    board_set_xy(board, p.0, p.1, field);
 }
 
 fn board_set_xy(board:&mut Board, x:i32, y:i32, field:Field) {
@@ -128,7 +119,7 @@ fn board_to_string(board:Board) -> String {
         s.push_str(&format!(" {}", y+1));
         for x in 0..8 {
             let odd_field   = (x + y * 9) % 2 == 1;
-            let field       = board_index(board, Pos { x:x, y:y });
+            let field       = board_index(board, (x, y));
             s.push(' ');
             s.push(field_to_char(field, odd_field));
         }
@@ -181,11 +172,66 @@ fn figure_kind_from_char(c:char) -> Option<FigureKind> {
 
 
 fn board_apply_move(board:&mut Board, move_:Move) {
-    let (x1, y1, x2, y2) = move_;
-    let field = board_index_xy(*board, x1, y1);
-    board_set_xy(board, x2, y2, field);
-    board_set_xy(board, x1, y1, Field::Empty);
+    let (s, d) = move_;
+    if !is_on_board(s) || !is_on_board(d) {
+        return;
+    }
+    let field = board_index(*board, s);
+    if let Field::Figure(figure) = field {
+        if figure_move_is_valid(figure, move_, *board) {
+            board_set(board, d, field);
+            board_set(board, s, Field::Empty);
+        }
+    }
 }
+
+fn figure_move_is_valid(figure:Figure, move_:Move, board:Board) -> bool {
+    let f : fn(Pos, Pos, Board, Color) -> bool =
+    match figure.kind {
+        Pawn    => move_is_valid_for_pawn,
+        Knight  => move_is_valid_for_knight,
+        Rook    => move_is_valid_for_rook,
+        Bishop  => move_is_valid_for_bishop,
+        Queen   => move_is_valid_for_queen,
+        King    => move_is_valid_for_king,
+    };
+    f(move_.0, move_.1, board, figure.color)
+}
+
+fn move_is_valid_for_pawn(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    let dir = get_direction(c);
+        (s.0 == d.0 && d.1 == s.1 + dir
+        && is_empty(d, b))
+    ||  ((s.0 - d.0).abs() == 1 && d.1 == s.1 + dir
+        && is_enemy(d, c, b))
+}
+
+#[allow(unused_variables)]
+fn move_is_valid_for_knight(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    true
+}
+
+#[allow(unused_variables)]
+fn move_is_valid_for_rook(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    true
+}
+
+#[allow(unused_variables)]
+fn move_is_valid_for_bishop(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    true
+}
+
+#[allow(unused_variables)]
+fn move_is_valid_for_queen(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    true
+}
+
+#[allow(unused_variables)]
+fn move_is_valid_for_king(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    true
+}
+
+
 
 
 
@@ -194,6 +240,8 @@ fn main() {
     ppppppppnrbqkbrn";
     let board = &mut board_from_str(standard_board);
     println!("{}", board_to_string(*board));
-    board_apply_move(board, (0, 1, 0, 2));
+    board_apply_move(board, ((0, 1), (0, 2)));
+    println!("{}", board_to_string(*board));
+    board_apply_move(board, ((0, 0), (0, 3)));
     println!("{}", board_to_string(*board));
 }
