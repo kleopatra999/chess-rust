@@ -132,7 +132,7 @@ fn board_to_string(board:Board) -> String {
 
 fn board_from_str(s:&str) -> Board {
     let mut fields = [[Field::Empty; 8]; 8];
-    for (i, c) in s.char_indices() {
+    for (i, c) in s.char_indices().take(8*8) {
         fields[i / 8][i % 8] = field_from_char(c);
     }
     Board { fields: fields }
