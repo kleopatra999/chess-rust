@@ -74,8 +74,8 @@ fn get_direction(color:Color) -> i32 {
 fn figure_kind_black_to_char(kind:FigureKind) -> char {
     match kind {
         Pawn    => '♙',
-        Knight  => '♖',
-        Rook    => '♘',
+        Rook    => '♖',
+        Knight  => '♘',
         Bishop  => '♗',
         Queen   => '♕',
         King    => '♔',
@@ -85,8 +85,8 @@ fn figure_kind_black_to_char(kind:FigureKind) -> char {
 fn figure_kind_white_to_char(kind:FigureKind) -> char {
     match kind {
         Pawn    => '♟',
-        Knight  => '♜',
-        Rook    => '♞',
+        Rook    => '♜',
+        Knight  => '♞',
         Bishop  => '♝',
         Queen   => '♛',
         King    => '♚',
@@ -116,7 +116,7 @@ fn board_to_string(board:Board) -> String {
     let mut s = String::with_capacity(11*9);
     s.push_str("   A B C D E F G H \n");
     for y in 0..8 {
-        s.push_str(&format!(" {}", y+1));
+        s.push_str(&format!(" {}", 8-y));
         for x in 0..8 {
             let odd_field   = (x + y * 9) % 2 == 1;
             let field       = board_index(board, (x, y));
@@ -172,17 +172,25 @@ fn figure_kind_from_char(c:char) -> Option<FigureKind> {
 
 
 fn board_apply_move(board:&mut Board, move_:Move) {
+    if board_move_is_valid(board, move_) {
+        let field = board_index(*board, move_.0);
+        board_set(board, move_.1, field);
+        board_set(board, move_.0, Field::Empty);
+    }
+}
+
+fn board_move_is_valid(board:&Board, move_:Move) -> bool {
     let (s, d) = move_;
     if !is_on_board(s) || !is_on_board(d) {
-        return;
+        return false
     }
     let field = board_index(*board, s);
     if let Field::Figure(figure) = field {
         if figure_move_is_valid(figure, move_, *board) {
-            board_set(board, d, field);
-            board_set(board, s, Field::Empty);
+            return true
         }
     }
+    false
 }
 
 fn figure_move_is_valid(figure:Figure, move_:Move, board:Board) -> bool {
@@ -207,41 +215,107 @@ fn move_is_valid_for_pawn(s:Pos, d:Pos, b:Board, c:Color) -> bool {
 }
 
 #[allow(unused_variables)]
-fn move_is_valid_for_knight(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    true
+fn move_is_valid_for_rook(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    let valid_moves = &mut Vec::with_capacity(14);
+    check_line(s, ( 0,  1), b, c, valid_moves);
+    check_line(s, ( 0, -1), b, c, valid_moves);
+    check_line(s, ( 1,  0), b, c, valid_moves);
+    check_line(s, (-1,  0), b, c, valid_moves);
+    valid_moves.contains(&d)
+}
+
+fn check_line((mut x, mut y):Pos, dir:Pos, b:Board, c:Color, valid_moves:&mut Vec<Pos>) {
+    //let mut x = s.0, y = s.1;
+    loop {
+        x += dir.0;
+        y += dir.1;
+        if !(0 <= x && x < 8 && 0 <= y && y < 8) {
+            break;
+        }
+        if is_empty((x, y), b) {
+            valid_moves.push((x, y));
+            continue;
+        }
+        if is_enemy((x, y), c, b) {
+            valid_moves.push((x, y));
+        }
+        break;
+    }
 }
 
 #[allow(unused_variables)]
-fn move_is_valid_for_rook(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    true
+fn move_is_valid_for_knight(s:Pos, d:Pos, b:Board, c:Color) -> bool {
+    3 - (d.0 - s.0).abs() - (d.1 - s.1).abs() == 0
+    && (is_empty(d, b) || is_enemy(d, c, b))
 }
 
 #[allow(unused_variables)]
 fn move_is_valid_for_bishop(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    true
+    let valid_moves = &mut Vec::with_capacity(14);
+    check_line(s, ( 1,  1), b, c, valid_moves);
+    check_line(s, ( 1, -1), b, c, valid_moves);
+    check_line(s, (-1,  1), b, c, valid_moves);
+    check_line(s, (-1, -1), b, c, valid_moves);
+    valid_moves.contains(&d)
 }
 
 #[allow(unused_variables)]
 fn move_is_valid_for_queen(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    true
+    let valid_moves = &mut Vec::with_capacity(28);
+    check_line(s, ( 0,  1), b, c, valid_moves);
+    check_line(s, ( 0, -1), b, c, valid_moves);
+    check_line(s, ( 1,  0), b, c, valid_moves);
+    check_line(s, (-1,  0), b, c, valid_moves);
+    check_line(s, ( 1,  1), b, c, valid_moves);
+    check_line(s, ( 1, -1), b, c, valid_moves);
+    check_line(s, (-1,  1), b, c, valid_moves);
+    check_line(s, (-1, -1), b, c, valid_moves);
+    valid_moves.contains(&d)
 }
 
 #[allow(unused_variables)]
 fn move_is_valid_for_king(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    true
+    (d.0 - s.0).abs() <= 1 && (d.1 - s.1).abs() <= 1
+    && (is_empty(d, b) || is_enemy(d, c, b))
 }
 
 
 
 
 
+extern crate rand;
+
+fn random_move() -> Move {
+    let r = || (rand::random::<u8>() % 8) as i32;
+    ((r(), r()), (r(), r()))
+}
+
+fn board_random_move(board:&Board) -> Move {
+    let mut m : Move;
+    for _ in 0..1000 {
+        m = random_move();
+        if board_move_is_valid(&board, m) {
+            return m
+        }
+    }
+    return ((0, 0), (0, 0))
+}
+
+
+
 fn main() {
-    let standard_board = "NRBKQBRNPPPPPPPP                                \
-    ppppppppnrbqkbrn";
+    let standard_board = "RNBKQBNRPPPPPPPP                                \
+    pppppppprnbqkbnr";
     let board = &mut board_from_str(standard_board);
     println!("{}", board_to_string(*board));
-    board_apply_move(board, ((0, 1), (0, 2)));
-    println!("{}", board_to_string(*board));
-    board_apply_move(board, ((0, 0), (0, 3)));
-    println!("{}", board_to_string(*board));
+    loop {
+        let input = &mut String::with_capacity(8);
+        std::io::stdin().read_line(input).unwrap();
+        if input == "q\n" {
+            break;
+        }
+        let next_move = board_random_move(board);
+        board_apply_move(board, next_move);
+        println!("{}", board_to_string(*board));
+    }
 }
