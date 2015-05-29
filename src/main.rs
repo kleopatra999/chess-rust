@@ -182,7 +182,7 @@ fn board_apply_valid_move(board:&mut Board, mymove:Move) {
     use Move::*;
     match mymove {
         BasicMove(s, d) => board_apply_basic_move(board, s, d),
-        _               => (),
+        _               => panic!("I'm sorry Dave, I'm afraid I can't do that."),
     }
 }
 
