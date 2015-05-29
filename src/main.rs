@@ -49,6 +49,14 @@ fn is_enemy(p:Pos, color:Color, board:&Board) -> bool {
     }
 }
 
+fn is_empty_or_enemy(p:Pos, color:Color, board:&Board) -> bool {
+    match board_index(board, p) {
+        Field::Empty     => true,
+        Field::Figure(f) => f.color != color
+    }
+}
+
+
 
 
 fn board_index(board:&Board, p:Pos) -> Field {
@@ -326,8 +334,8 @@ fn figure_get_valid_moves(
     let f : fn(Pos, &Board, Color, &mut Vec<Move>) =
     match figure.kind {
         Pawn    => get_valid_moves_pawn,
-/*        Knight  => get_valid_moves_knight,
-        Rook    => get_valid_moves_rook,
+        Knight  => get_valid_moves_knight,
+/*        Rook    => get_valid_moves_rook,
         Bishop  => get_valid_moves_bishop,
         Queen   => get_valid_moves_queen,
         King    => get_valid_moves_king,*/
@@ -371,6 +379,24 @@ fn get_valid_moves_pawn(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
     }
 }
 
+fn get_valid_moves_knight(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
+    let (x, y)  = s;
+    let poses = [
+        (x+1, y+2),
+        (x+1, y-2),
+        (x-1, y+2),
+        (x-1, y-2),
+        (x+2, y+1),
+        (x+2, y-1),
+        (x-2, y+1),
+        (x-2, y-1),
+    ];
+    for p in poses.iter() {
+        if is_on_board(*p) && is_empty_or_enemy(*p, c, b) {
+            moves.push( Move::BasicMove(s, *p) )
+        }
+    }
+}
 
 
 
@@ -418,7 +444,7 @@ fn main() {
         println!("{}", board_to_string(board));
         {   // TODO :D, current_color.next()
             use Color::*;
-            current_color = if (current_color == W) { B } else { W };
+            current_color = if current_color == W { B } else { W };
         }
     }
 }
