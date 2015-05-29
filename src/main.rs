@@ -23,7 +23,14 @@ struct Figure {
 }
 
 type Pos  = (i32, i32);
-type Move = (Pos, Pos);
+
+#[derive(PartialEq,Eq,Clone,Copy,Debug)]
+enum Move {
+    BasicMove   (Pos, Pos),
+    EnPassant   (Pos, Pos),
+    Castling    (Pos, Pos),
+    Promotion   (Pos, Pos),
+}
 
 
 
@@ -31,11 +38,11 @@ fn is_on_board(p:Pos) -> bool {
     p.0 >= 0 && p.0 < 8 && p.1 >= 0 && p.1 < 8
 }
 
-fn is_empty(p:Pos, board:Board) -> bool {
+fn is_empty(p:Pos, board:&Board) -> bool {
     board_index(board, p) == Field::Empty
 }
 
-fn is_enemy(p:Pos, color:Color, board:Board) -> bool {
+fn is_enemy(p:Pos, color:Color, board:&Board) -> bool {
     match board_index(board, p) {
         Field::Empty     => false,
         Field::Figure(f) => f.color != color
@@ -44,11 +51,11 @@ fn is_enemy(p:Pos, color:Color, board:Board) -> bool {
 
 
 
-fn board_index(board:Board, p:Pos) -> Field {
+fn board_index(board:&Board, p:Pos) -> Field {
     board_index_xy(board, p.0, p.1)
 }
 
-fn board_index_xy(board:Board, x:i32, y:i32) -> Field {
+fn board_index_xy(board:&Board, x:i32, y:i32) -> Field {
     board.fields[y as usize][x as usize]
 }
 
@@ -112,7 +119,7 @@ fn field_to_char(field:Field, odd:bool) -> char {
 
 
 
-fn board_to_string(board:Board) -> String {
+fn board_to_string(board:&Board) -> String {
     let mut s = String::with_capacity(11*9);
     s.push_str("   A B C D E F G H \n");
     for y in 0..8 {
@@ -171,14 +178,22 @@ fn figure_kind_from_char(c:char) -> Option<FigureKind> {
 
 
 
-fn board_apply_move(board:&mut Board, move_:Move) {
-    if board_move_is_valid(board, move_) {
-        let field = board_index(*board, move_.0);
-        board_set(board, move_.1, field);
-        board_set(board, move_.0, Field::Empty);
+fn board_apply_valid_move(board:&mut Board, mymove:Move) {
+    use Move::*;
+    match mymove {
+        BasicMove(s, d) => board_apply_basic_move(board, s, d),
+        _               => (),
     }
 }
 
+fn board_apply_basic_move(board:&mut Board, s:Pos, d:Pos) {
+    let field = board_index(board, s);
+    board_set(board, d, field);
+    board_set(board, s, Field::Empty);
+}
+
+
+/*
 fn board_move_is_valid(board:&Board, move_:Move) -> bool {
     let (s, d) = move_;
     if !is_on_board(s) || !is_on_board(d) {
@@ -278,11 +293,90 @@ fn move_is_valid_for_king(s:Pos, d:Pos, b:Board, c:Color) -> bool {
     (d.0 - s.0).abs() <= 1 && (d.1 - s.1).abs() <= 1
     && (is_empty(d, b) || is_enemy(d, c, b))
 }
+*/
+
+
+
+
+fn board_get_valid_moves (b : &Board, c : Color) -> Vec<Move> {
+    let mut moves = Vec::with_capacity(
+        4*8     + // pawns
+        14*4    + // rooks and bishops
+        8*2     + // knights
+        7*4     + // queen
+        8       + // king
+        2);       // castling
+    for y in 0..8 {
+        for x in 0..8 {
+            if let Field::Figure(f) = board_index_xy(b, x, y) {
+                if f.color == c {
+                    figure_get_valid_moves(f, b, (x, y), &mut moves);
+                }
+            }
+        }
+    }
+    moves
+}
+
+fn figure_get_valid_moves(
+        figure  : Figure,
+        board   : &Board,
+        pos     : Pos,
+        moves   : &mut Vec<Move>) {
+    let f : fn(Pos, &Board, Color, &mut Vec<Move>) =
+    match figure.kind {
+        Pawn    => get_valid_moves_pawn,
+/*        Knight  => get_valid_moves_knight,
+        Rook    => get_valid_moves_rook,
+        Bishop  => get_valid_moves_bishop,
+        Queen   => get_valid_moves_queen,
+        King    => get_valid_moves_king,*/
+        _       => get_valid_moves_pawn
+    };
+    f(pos, board, figure.color, moves)
+}
+
+fn get_valid_moves_pawn(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
+    use Move::*;
+    use Color::*;
+    let (x, y)  = s;
+    let d       = get_direction(c);
+    
+    /*
+    BasicMove, (x  , y+d),               |f| =>
+        f.is_empty()
+    BasicMove, (x  , y+d+d),             |f| =>
+        f.is_empty() && f.xy(y, y+d).is_empty()
+    BasicMove, [(x-1, y+d), (x+1, y+d)], |f| =>
+        f.is_enemy()
+    EnPassant, [(x-1, y+d), (x+1, y+d)], |f| =>
+        f.add_xy(0,-d).is_jumped_pawn()
+    Promotion, (x   , y+d),              |f| =>
+        f.is_empty() && f.is_groundline(-d)
+    */
+    
+    for p in [(x, y+d)].iter() {
+        if is_on_board(*p) && is_empty(*p, b) {
+            moves.push( BasicMove(s, *p) );
+            if ((c == W && y == 6) || (c == B && y == 1))
+                && is_empty((x, y+d+d), b) {
+                moves.push( BasicMove(s, (x, y+d+d)) )
+            }
+        }
+    }
+    for p in [(x-1, y+d), (x+1, y+d)].iter() {
+        if is_on_board(*p) && is_enemy(*p, c, b) {
+            moves.push( BasicMove(s, *p) )
+        }
+    }
+}
 
 
 
 
 
+
+/*
 extern crate rand;
 
 fn random_move() -> Move {
@@ -300,14 +394,37 @@ fn board_random_move(board:&Board) -> Move {
     }
     return ((0, 0), (0, 0))
 }
+*/
 
 
+
+extern crate rand;
 
 fn main() {
     let standard_board = "RNBKQBNRPPPPPPPP                                \
     pppppppprnbqkbnr";
     let board = &mut board_from_str(standard_board);
-    println!("{}", board_to_string(*board));
+    println!("{}", board_to_string(board));
+    let mut current_color = Color::B;
+    for _ in 0..3 {
+        let moves   = board_get_valid_moves(board, current_color);
+        let len     = moves.len();
+        if len > 0 {
+            let index   = rand::random::<usize>() % len;
+            let mymove  = moves[index];
+            println!("{:?}", mymove);
+            board_apply_valid_move(board, mymove);
+        }
+        println!("{}", board_to_string(board));
+        {   // TODO :D, current_color.next()
+            use Color::*;
+            current_color = if (current_color == W) { B } else { W };
+        }
+    }
+}
+
+/*
+fn main_interactive_loop (board : &mut Board) {
     loop {
         let input = &mut String::with_capacity(8);
         std::io::stdin().read_line(input).unwrap();
@@ -319,3 +436,4 @@ fn main() {
         println!("{}", board_to_string(*board));
     }
 }
+*/
