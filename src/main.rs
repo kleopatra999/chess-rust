@@ -336,8 +336,8 @@ fn figure_get_valid_moves(
         Pawn    => get_valid_moves_pawn,
         Knight  => get_valid_moves_knight,
         Rook    => get_valid_moves_rook,
-/*        Bishop  => get_valid_moves_bishop,
-        Queen   => get_valid_moves_queen,
+        Bishop  => get_valid_moves_bishop,
+/*        Queen   => get_valid_moves_queen,
         King    => get_valid_moves_king,*/
         _       => get_valid_moves_pawn
     };
@@ -431,6 +431,15 @@ fn get_valid_moves_rook(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
     }
 }
 
+fn get_valid_moves_bishop(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
+    for p in [
+        ( 1,  1),
+        ( 1, -1),
+        (-1,  1),
+        (-1, -1)].iter() {
+        get_valid_moves_check_line(s, *p, b, c, moves);
+    }
+}
 
 
 
