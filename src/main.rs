@@ -335,8 +335,8 @@ fn figure_get_valid_moves(
     match figure.kind {
         Pawn    => get_valid_moves_pawn,
         Knight  => get_valid_moves_knight,
-/*        Rook    => get_valid_moves_rook,
-        Bishop  => get_valid_moves_bishop,
+        Rook    => get_valid_moves_rook,
+/*        Bishop  => get_valid_moves_bishop,
         Queen   => get_valid_moves_queen,
         King    => get_valid_moves_king,*/
         _       => get_valid_moves_pawn
@@ -397,6 +397,40 @@ fn get_valid_moves_knight(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
         }
     }
 }
+
+fn get_valid_moves_check_line(
+        s : Pos, (dx, dy) : Pos,
+        b : &Board, c : Color,
+        moves : &mut Vec<Move>) {
+    use Move::*;
+    let (mut x, mut y) = s;
+    loop {
+        x += dx;
+        y += dy;
+        if !is_on_board((x, y)) {
+            break;
+        }
+        if is_empty((x, y), b) {
+            moves.push( BasicMove(s, (x, y)) );
+            continue;
+        }
+        if is_enemy((x, y), c, b) {
+            moves.push( BasicMove(s, (x, y)) );
+        }
+        break;
+    }
+}
+
+fn get_valid_moves_rook(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
+    for p in [
+        ( 0,  1),
+        ( 0, -1),
+        ( 1,  0),
+        (-1,  0)].iter() {
+        get_valid_moves_check_line(s, *p, b, c, moves);
+    }
+}
+
 
 
 
