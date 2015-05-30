@@ -338,8 +338,7 @@ fn figure_get_valid_moves(
         Rook    => get_valid_moves_rook,
         Bishop  => get_valid_moves_bishop,
         Queen   => get_valid_moves_queen,
-/*        King    => get_valid_moves_king,*/
-        _       => get_valid_moves_pawn
+        King    => get_valid_moves_king,
     };
     f(pos, board, figure.color, moves)
 }
@@ -455,6 +454,23 @@ fn get_valid_moves_queen(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
     }
 }
 
+fn get_valid_moves_king(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
+    let (x, y) = s;
+    for p in [
+        (x-1, y-1),
+        (x-1, y+1),
+        (x-1, y  ),
+        (x+1, y-1),
+        (x+1, y+1),
+        (x+1, y  ),
+        (x  , y-1),
+        (x  , y+1)].iter() {
+        if is_on_board(*p) && is_empty_or_enemy(*p, c, b) {
+            moves.push( Move::BasicMove(s, *p) )
+        }
+    }
+}
+
 
 
 
@@ -490,7 +506,7 @@ fn main() {
     let board = &mut board_from_str(standard_board);
     println!("{}", board_to_string(board));
     let mut current_color = Color::B;
-    for _ in 0..30 {
+    for _ in 0..3 {
         let moves   = board_get_valid_moves(board, current_color);
         let len     = moves.len();
         if len > 0 {
