@@ -200,112 +200,6 @@ fn board_apply_basic_move(board:&mut Board, s:Pos, d:Pos) {
     board_set(board, s, Field::Empty);
 }
 
-
-/*
-fn board_move_is_valid(board:&Board, move_:Move) -> bool {
-    let (s, d) = move_;
-    if !is_on_board(s) || !is_on_board(d) {
-        return false
-    }
-    let field = board_index(*board, s);
-    if let Field::Figure(figure) = field {
-        if figure_move_is_valid(figure, move_, *board) {
-            return true
-        }
-    }
-    false
-}
-
-fn figure_move_is_valid(figure:Figure, move_:Move, board:Board) -> bool {
-    let f : fn(Pos, Pos, Board, Color) -> bool =
-    match figure.kind {
-        Pawn    => move_is_valid_for_pawn,
-        Knight  => move_is_valid_for_knight,
-        Rook    => move_is_valid_for_rook,
-        Bishop  => move_is_valid_for_bishop,
-        Queen   => move_is_valid_for_queen,
-        King    => move_is_valid_for_king,
-    };
-    f(move_.0, move_.1, board, figure.color)
-}
-
-fn move_is_valid_for_pawn(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    let dir = get_direction(c);
-        (s.0 == d.0 && d.1 == s.1 + dir
-        && is_empty(d, b))
-    ||  ((s.0 - d.0).abs() == 1 && d.1 == s.1 + dir
-        && is_enemy(d, c, b))
-}
-
-#[allow(unused_variables)]
-fn move_is_valid_for_rook(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    let valid_moves = &mut Vec::with_capacity(14);
-    check_line(s, ( 0,  1), b, c, valid_moves);
-    check_line(s, ( 0, -1), b, c, valid_moves);
-    check_line(s, ( 1,  0), b, c, valid_moves);
-    check_line(s, (-1,  0), b, c, valid_moves);
-    valid_moves.contains(&d)
-}
-
-fn check_line((mut x, mut y):Pos, dir:Pos, b:Board, c:Color, valid_moves:&mut Vec<Pos>) {
-    //let mut x = s.0, y = s.1;
-    loop {
-        x += dir.0;
-        y += dir.1;
-        if !(0 <= x && x < 8 && 0 <= y && y < 8) {
-            break;
-        }
-        if is_empty((x, y), b) {
-            valid_moves.push((x, y));
-            continue;
-        }
-        if is_enemy((x, y), c, b) {
-            valid_moves.push((x, y));
-        }
-        break;
-    }
-}
-
-#[allow(unused_variables)]
-fn move_is_valid_for_knight(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    3 - (d.0 - s.0).abs() - (d.1 - s.1).abs() == 0
-    && (is_empty(d, b) || is_enemy(d, c, b))
-}
-
-#[allow(unused_variables)]
-fn move_is_valid_for_bishop(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    let valid_moves = &mut Vec::with_capacity(14);
-    check_line(s, ( 1,  1), b, c, valid_moves);
-    check_line(s, ( 1, -1), b, c, valid_moves);
-    check_line(s, (-1,  1), b, c, valid_moves);
-    check_line(s, (-1, -1), b, c, valid_moves);
-    valid_moves.contains(&d)
-}
-
-#[allow(unused_variables)]
-fn move_is_valid_for_queen(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    let valid_moves = &mut Vec::with_capacity(28);
-    check_line(s, ( 0,  1), b, c, valid_moves);
-    check_line(s, ( 0, -1), b, c, valid_moves);
-    check_line(s, ( 1,  0), b, c, valid_moves);
-    check_line(s, (-1,  0), b, c, valid_moves);
-    check_line(s, ( 1,  1), b, c, valid_moves);
-    check_line(s, ( 1, -1), b, c, valid_moves);
-    check_line(s, (-1,  1), b, c, valid_moves);
-    check_line(s, (-1, -1), b, c, valid_moves);
-    valid_moves.contains(&d)
-}
-
-#[allow(unused_variables)]
-fn move_is_valid_for_king(s:Pos, d:Pos, b:Board, c:Color) -> bool {
-    (d.0 - s.0).abs() <= 1 && (d.1 - s.1).abs() <= 1
-    && (is_empty(d, b) || is_enemy(d, c, b))
-}
-*/
-
-
-
-
 fn board_get_valid_moves (b : &Board, c : Color) -> Vec<Move> {
     let mut moves = Vec::with_capacity(
         4*8     + // pawns
@@ -347,21 +241,7 @@ fn get_valid_moves_pawn(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
     use Move::*;
     use Color::*;
     let (x, y)  = s;
-    let d       = get_direction(c);
-    
-    /*
-    BasicMove, (x  , y+d),               |f| =>
-        f.is_empty()
-    BasicMove, (x  , y+d+d),             |f| =>
-        f.is_empty() && f.xy(y, y+d).is_empty()
-    BasicMove, [(x-1, y+d), (x+1, y+d)], |f| =>
-        f.is_enemy()
-    EnPassant, [(x-1, y+d), (x+1, y+d)], |f| =>
-        f.add_xy(0,-d).is_jumped_pawn()
-    Promotion, (x   , y+d),              |f| =>
-        f.is_empty() && f.is_groundline(-d)
-    */
-    
+    let d       = get_direction(c);    
     for p in [(x, y+d)].iter() {
         if is_on_board(*p) && is_empty(*p, b) {
             moves.push( BasicMove(s, *p) );
@@ -470,31 +350,6 @@ fn get_valid_moves_king(s:Pos, b:&Board, c:Color, moves:&mut Vec<Move>) {
         }
     }
 }
-
-
-
-
-
-
-/*
-extern crate rand;
-
-fn random_move() -> Move {
-    let r = || (rand::random::<u8>() % 8) as i32;
-    ((r(), r()), (r(), r()))
-}
-
-fn board_random_move(board:&Board) -> Move {
-    let mut m : Move;
-    for _ in 0..1000 {
-        m = random_move();
-        if board_move_is_valid(&board, m) {
-            return m
-        }
-    }
-    return ((0, 0), (0, 0))
-}
-*/
 
 
 
